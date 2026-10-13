@@ -1,45 +1,16 @@
-import pandas as pd
+"""Print campaign performance using the same logic as the dashboard."""
 
-# Load the corrected dataset
-file_path = "data/cleaned/marketing_campaign_cleaned_final.csv"
-df = pd.read_csv(file_path)
+from pathlib import Path
+import sys
 
-# Calculate campaign-level performance
-campaign_analysis = df.groupby("Campaign_Name").agg(
-    total_ad_spend=("Ad_Spend", "sum"),
-    total_revenue=("Revenue", "sum"),
-    total_impressions=("Impressions", "sum"),
-    total_clicks=("Clicks", "sum"),
-    total_leads=("Leads", "sum"),
-    total_conversions=("Conversions", "sum")
-).reset_index()
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-# Calculate KPIs
-campaign_analysis["CTR"] = (
-    campaign_analysis["total_clicks"] /
-    campaign_analysis["total_impressions"] * 100
-)
+from python.marketing_analytics import load_data, summarize_by
 
-campaign_analysis["Conversion_Rate"] = (
-    campaign_analysis["total_conversions"] /
-    campaign_analysis["total_leads"] * 100
-)
 
-campaign_analysis["CAC"] = (
-    campaign_analysis["total_ad_spend"] /
-    campaign_analysis["total_conversions"]
-)
-
-campaign_analysis["ROI"] = (
-    (campaign_analysis["total_revenue"] -
-     campaign_analysis["total_ad_spend"]) /
-    campaign_analysis["total_ad_spend"] * 100
-)
-
-# Sort by revenue
-campaign_analysis = campaign_analysis.sort_values(
-    "total_revenue",
-    ascending=False
+campaign_analysis = summarize_by(load_data(), "campaign").sort_values(
+    "total_revenue", ascending=False, na_position="last"
 )
 
 print("CAMPAIGN PERFORMANCE ANALYSIS")

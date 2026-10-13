@@ -1,45 +1,16 @@
-import pandas as pd
+"""Print channel performance using the same logic as the dashboard."""
 
-# Load the corrected dataset
-file_path = "data/cleaned/marketing_campaign_cleaned_final.csv"
-df = pd.read_csv(file_path)
+from pathlib import Path
+import sys
 
-# Calculate channel-level performance
-channel_analysis = df.groupby("Channel").agg(
-    total_ad_spend=("Ad_Spend", "sum"),
-    total_revenue=("Revenue", "sum"),
-    total_impressions=("Impressions", "sum"),
-    total_clicks=("Clicks", "sum"),
-    total_leads=("Leads", "sum"),
-    total_conversions=("Conversions", "sum")
-).reset_index()
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-# Calculate KPIs
-channel_analysis["CTR"] = (
-    channel_analysis["total_clicks"] /
-    channel_analysis["total_impressions"] * 100
-)
+from python.marketing_analytics import load_data, summarize_by
 
-channel_analysis["Conversion_Rate"] = (
-    channel_analysis["total_conversions"] /
-    channel_analysis["total_leads"] * 100
-)
 
-channel_analysis["CAC"] = (
-    channel_analysis["total_ad_spend"] /
-    channel_analysis["total_conversions"]
-)
-
-channel_analysis["ROI"] = (
-    (channel_analysis["total_revenue"] -
-     channel_analysis["total_ad_spend"]) /
-    channel_analysis["total_ad_spend"] * 100
-)
-
-# Sort by revenue
-channel_analysis = channel_analysis.sort_values(
-    "total_revenue",
-    ascending=False
+channel_analysis = summarize_by(load_data(), "channel").sort_values(
+    "total_revenue", ascending=False, na_position="last"
 )
 
 print("CHANNEL PERFORMANCE ANALYSIS")

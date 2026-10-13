@@ -1,46 +1,19 @@
-import pandas as pd
+"""Print audience segment performance with guarded KPI calculations."""
 
-# Load the corrected dataset
-file_path = "data/cleaned/marketing_campaign_cleaned_final.csv"
-df = pd.read_csv(file_path)
+from pathlib import Path
+import sys
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from python.marketing_analytics import load_data, summarize_by
 
 
-def calculate_segment_analysis(data, column_name):
-    analysis = data.groupby(column_name).agg(
-        total_ad_spend=("Ad_Spend", "sum"),
-        total_revenue=("Revenue", "sum"),
-        total_impressions=("Impressions", "sum"),
-        total_clicks=("Clicks", "sum"),
-        total_leads=("Leads", "sum"),
-        total_conversions=("Conversions", "sum")
-    ).reset_index()
-
-    analysis["CTR"] = (
-        analysis["total_clicks"] /
-        analysis["total_impressions"] * 100
-    )
-
-    analysis["Conversion_Rate"] = (
-        analysis["total_conversions"] /
-        analysis["total_leads"] * 100
-    )
-
-    analysis["CAC"] = (
-        analysis["total_ad_spend"] /
-        analysis["total_conversions"]
-    )
-
-    analysis["ROI"] = (
-        (analysis["total_revenue"] -
-         analysis["total_ad_spend"]) /
-        analysis["total_ad_spend"] * 100
-    )
-
-    return analysis.round(2)
+df = load_data()
 
 
 # Age Group Analysis
-age_analysis = calculate_segment_analysis(df, "Age_Group")
+age_analysis = summarize_by(df, "age_group")
 
 print("AGE GROUP ANALYSIS")
 print("=" * 70)
@@ -48,7 +21,7 @@ print(age_analysis.to_string(index=False))
 
 
 # Gender Analysis
-gender_analysis = calculate_segment_analysis(df, "Gender")
+gender_analysis = summarize_by(df, "gender")
 
 print("\nGENDER ANALYSIS")
 print("=" * 70)

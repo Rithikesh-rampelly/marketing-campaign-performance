@@ -1,0 +1,13 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Streamlit local state
+.streamlit/secrets.toml
+
+# Local exports and temporary files
+reports/generated/
+*.log

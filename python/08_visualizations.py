@@ -1,187 +1,100 @@
-import pandas as pd
+"""Generate the original PNG portfolio charts from the shared analytics core.
+
+The Streamlit dashboard is the recommended interactive experience. This file
+keeps the original static-image workflow available for presentations and
+Power BI documentation, while preventing divide-by-zero and inconsistent KPI
+calculations.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+import sys
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import matplotlib.pyplot as plt
+import pandas as pd
 
-# Load the corrected dataset
-file_path = "data/cleaned/marketing_campaign_cleaned_final.csv"
-df = pd.read_csv(file_path)
-
-# -----------------------------------
-# Chart 1: Revenue by Channel
-# -----------------------------------
-
-channel_revenue = (
-    df.groupby("Channel")["Revenue"]
-    .sum()
-    .sort_values(ascending=False)
-)
-
-plt.figure(figsize=(10, 6))
-channel_revenue.plot(kind="bar")
-
-plt.title("Revenue by Marketing Channel")
-plt.xlabel("Channel")
-plt.ylabel("Revenue")
-plt.xticks(rotation=45)
-plt.tight_layout()
-
-plt.savefig("screenshots/revenue_by_channel.png", dpi=300)
-plt.close()
+from python.marketing_analytics import grouped_summaries, load_data
 
 
-# -----------------------------------
-# Chart 2: Monthly Revenue Trend
-# -----------------------------------
+OUTPUT_DIR = Path(__file__).resolve().parents[1] / "screenshots"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-df["Date"] = pd.to_datetime(df["Date"], dayfirst=True)
 
-monthly_revenue = (
-    df.groupby(df["Date"].dt.to_period("M"))["Revenue"]
-    .sum()
-)
+def _finish(title: str, path: Path, *, rotate_labels: bool = False) -> None:
+    plt.title(title)
+    if rotate_labels:
+        plt.xticks(rotation=35, ha="right")
+    plt.tight_layout()
+    plt.savefig(path, dpi=180, bbox_inches="tight")
+    plt.close()
+    print(path)
 
-plt.figure(figsize=(10, 6))
-monthly_revenue.plot(kind="line", marker="o")
 
-plt.title("Monthly Revenue Trend")
-plt.xlabel("Month")
-plt.ylabel("Revenue")
-plt.xticks(rotation=45)
-plt.tight_layout()
+def _bar(series: pd.Series, title: str, ylabel: str, filename: str) -> None:
+    if series.empty:
+        return
+    ax = series.plot(kind="bar", figsize=(9, 5), color="#2563EB")
+    ax.set_xlabel("")
+    ax.set_ylabel(ylabel)
+    _finish(title, OUTPUT_DIR / filename, rotate_labels=True)
 
-plt.savefig("screenshots/monthly_revenue_trend.png", dpi=300)
-plt.close()
 
-print("Both charts created successfully!")
-print("1. screenshots/revenue_by_channel.png")
-print("2. screenshots/monthly_revenue_trend.png")
+def main() -> None:
+    summaries = grouped_summaries(load_data())
+    channels = summaries["channel"].set_index("Channel")
+    months = summaries["month"].set_index("Month")
+    age_groups = summaries["age_group"].set_index("Age_Group")
 
-# -----------------------------------
-# Chart 3: Conversion Rate by Channel
-# -----------------------------------
-
-channel_conversion = (
-    df.groupby("Channel")
-    .apply(
-        lambda x: x["Conversions"].sum() /
-        x["Leads"].sum() * 100
+    _bar(
+        channels["total_revenue"].sort_values(ascending=False),
+        "Revenue by Marketing Channel",
+        "Known revenue (₹)",
+        "revenue_by_channel.png",
     )
-)
-
-plt.figure(figsize=(10, 6))
-channel_conversion.plot(kind="bar")
-
-plt.title("Conversion Rate by Marketing Channel")
-plt.xlabel("Channel")
-plt.ylabel("Conversion Rate (%)")
-plt.xticks(rotation=45)
-plt.tight_layout()
-
-plt.savefig("screenshots/conversion_rate_by_channel.png", dpi=300)
-plt.close()
-
-print("3. screenshots/conversion_rate_by_channel.png")
-
-# -----------------------------------
-# Chart 4: CAC by Channel
-# -----------------------------------
-
-channel_cac = (
-    df.groupby("Channel")
-    .apply(
-        lambda x: x["Ad_Spend"].sum() /
-        x["Conversions"].sum()
+    _bar(
+        months["total_revenue"],
+        "Monthly Revenue Trend",
+        "Known revenue (₹)",
+        "monthly_revenue_trend.png",
     )
-)
-
-plt.figure(figsize=(10, 6))
-channel_cac.plot(kind="bar")
-
-plt.title("Customer Acquisition Cost by Marketing Channel")
-plt.xlabel("Channel")
-plt.ylabel("CAC (₹)")
-plt.xticks(rotation=45)
-plt.tight_layout()
-
-plt.savefig("screenshots/cac_by_channel.png", dpi=300)
-plt.close()
-
-print("4. screenshots/cac_by_channel.png")
-
-# -----------------------------------
-# Chart 5: ROI by Channel
-# -----------------------------------
-
-channel_roi = (
-    df.groupby("Channel")
-    .apply(
-        lambda x: (
-            (x["Revenue"].sum() - x["Ad_Spend"].sum())
-            / x["Ad_Spend"].sum()
-        ) * 100
+    _bar(
+        channels["conversion_rate_percent"].dropna().sort_values(ascending=False),
+        "Conversion Rate by Marketing Channel",
+        "Conversion rate (%)",
+        "conversion_rate_by_channel.png",
     )
-)
-
-plt.figure(figsize=(10, 6))
-channel_roi.plot(kind="bar")
-
-plt.title("ROI by Marketing Channel")
-plt.xlabel("Channel")
-plt.ylabel("ROI (%)")
-plt.xticks(rotation=45)
-plt.tight_layout()
-
-plt.savefig("screenshots/roi_by_channel.png", dpi=300)
-plt.close()
-
-print("5. screenshots/roi_by_channel.png")
-
-# -----------------------------------
-# Chart 6: Revenue vs Ad Spend
-# -----------------------------------
-
-channel_financials = (
-    df.groupby("Channel")[["Ad_Spend", "Revenue"]]
-    .sum()
-)
-
-channel_financials.plot(
-    kind="bar",
-    figsize=(10, 6)
-)
-
-plt.title("Revenue vs Ad Spend by Marketing Channel")
-plt.xlabel("Channel")
-plt.ylabel("Amount (₹)")
-plt.xticks(rotation=45)
-plt.tight_layout()
-
-plt.savefig("screenshots/revenue_vs_ad_spend.png", dpi=300)
-plt.close()
-
-print("6. screenshots/revenue_vs_ad_spend.png")
-
-# -----------------------------------
-# Chart 7: Conversion Rate by Age Group
-# -----------------------------------
-
-age_conversion = (
-    df.groupby("Age_Group")
-    .apply(
-        lambda x: x["Conversions"].sum() /
-        x["Leads"].sum() * 100
+    _bar(
+        channels["cac"].dropna().sort_values(),
+        "Customer Acquisition Cost by Marketing Channel",
+        "CAC (₹)",
+        "cac_by_channel.png",
     )
-)
+    _bar(
+        channels["roi_percent"].dropna().sort_values(ascending=False),
+        "ROI by Marketing Channel",
+        "ROI (%)",
+        "roi_by_channel.png",
+    )
 
-plt.figure(figsize=(10, 6))
-age_conversion.plot(kind="bar")
+    financials = channels[["total_ad_spend", "total_revenue"]]
+    ax = financials.plot(kind="bar", figsize=(9, 5), color=["#D97706", "#2563EB"])
+    ax.set_xlabel("")
+    ax.set_ylabel("Amount (₹)")
+    _finish("Revenue vs Ad Spend by Marketing Channel", OUTPUT_DIR / "revenue_vs_ad_spend.png", rotate_labels=True)
 
-plt.title("Conversion Rate by Age Group")
-plt.xlabel("Age Group")
-plt.ylabel("Conversion Rate (%)")
-plt.xticks(rotation=45)
-plt.tight_layout()
+    _bar(
+        age_groups["conversion_rate_percent"].dropna().sort_values(ascending=False),
+        "Conversion Rate by Age Group",
+        "Conversion rate (%)",
+        "conversion_rate_by_age_group.png",
+    )
 
-plt.savefig("screenshots/conversion_rate_by_age_group.png", dpi=300)
-plt.close()
+    print("Static charts generated from validated analytics.")
 
-print("7. screenshots/conversion_rate_by_age_group.png")
+
+if __name__ == "__main__":
+    main()

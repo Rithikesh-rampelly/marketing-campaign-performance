@@ -1,35 +1,29 @@
-import pandas as pd
+"""Print portfolio KPIs using the shared, validated analytics engine."""
 
-# Load the corrected dataset
-file_path = "data/cleaned/marketing_campaign_cleaned_final.csv"
-df = pd.read_csv(file_path)
+from pathlib import Path
+import sys
 
-# Convert Date from text to date format
-df["Date"] = pd.to_datetime(df["Date"], dayfirst=True)
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-# Calculate overall KPIs
-total_ad_spend = df["Ad_Spend"].sum()
-total_revenue = df["Revenue"].sum()
-total_impressions = df["Impressions"].sum()
-total_clicks = df["Clicks"].sum()
-total_leads = df["Leads"].sum()
-total_conversions = df["Conversions"].sum()
+from python.marketing_analytics import calculate_kpis, load_data
 
-ctr = (total_clicks / total_impressions) * 100
-conversion_rate = (total_conversions / total_leads) * 100
-cac = total_ad_spend / total_conversions
-roi = ((total_revenue - total_ad_spend) / total_ad_spend) * 100
+
+df = load_data()
+kpis = calculate_kpis(df)
 
 print("OVERALL MARKETING KPIs")
 print("=" * 40)
 
-print(f"Total Ad Spend: ₹{total_ad_spend:,.2f}")
-print(f"Total Revenue: ₹{total_revenue:,.2f}")
-print(f"Total Impressions: {total_impressions:,}")
-print(f"Total Clicks: {total_clicks:,}")
-print(f"Total Leads: {total_leads:,}")
-print(f"Total Conversions: {total_conversions:,}")
-print(f"CTR: {ctr:.2f}%")
-print(f"Conversion Rate: {conversion_rate:.2f}%")
-print(f"CAC: ₹{cac:.2f}")
-print(f"ROI: {roi:.2f}%")
+print(f"Total Ad Spend (INR): {kpis['total_ad_spend']:,.2f}")
+print(f"Known Revenue (INR): {kpis['total_revenue']:,.2f}")
+print(f"Total Impressions: {kpis['total_impressions']:,}")
+print(f"Total Clicks: {kpis['total_clicks']:,}")
+print(f"Total Leads: {kpis['total_leads']:,}")
+print(f"Total Conversions: {kpis['total_conversions']:,}")
+print(f"CTR: {kpis['ctr_percent']:.2f}%")
+print(f"Conversion Rate: {kpis['conversion_rate_percent']:.2f}%")
+print(f"CAC (INR): {kpis['cac']:,.2f}")
+print(f"ROAS: {kpis['roas']:.2f}x")
+print(f"ROI: {kpis['roi_percent']:.2f}%")
+print(f"Revenue Coverage: {kpis['revenue_coverage_percent']:.2f}%")
